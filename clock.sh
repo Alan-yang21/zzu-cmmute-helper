@@ -1,17 +1,20 @@
 #!/bin/bash
 uid=$1
 upw=$2
-
-#获取ptopid和sid
-curl -d "uid=$uid&upw=$upw&smbtn=健康状况上报平台&hh28=722" "https://jksb.v.zzu.edu.cn/vls6sss/zzujksb.dll/login" -o "udata.txt"
-udata=$(sed -n '11p' udata.txt)
+uidarr=(${uid//,/ }) #字符串预处理
+upwarr=(${upw//,/ })
+num=${#uidarr[@]}
+smbtn="进入健康状况上报平台"
+url1="https://jksb.v.zzu.edu.cn/vls6sss/zzujksb.dll/login"
+url2="https://jksb.v.zzu.edu.cn/vls6sss/zzujksb.dll/jksb"
+for((i=0;i<num;i++))
+do
+curl -d "uid=${uidarr[i]}&upw=${upwarr[i]}&smbtn=$smbtn&hh28=722" -s $url1 -o temp.txt
+udata=$(sed -n '11p' temp.txt)
 udata=${udata#*ptopid=}
 udata=${udata%\"\}\}*}
 ptopid="${udata%&*}"
-sid="${udata#*&sid=}"
-url="https://jksb.v.zzu.edu.cn/vls6sss/zzujksb.dll/jksb"
-
-#进入身份确认界面
-curl -d "day6=b&did=1&men6=a&ptopid=${ptopid}&sid=${sid}" ${url}
-#进行打卡
-curl -d "myvs_1=否&myvs_2=否&myvs_3=否&myvs_4=否&Btn3=获取地市&myvs_13a=41&myvs_13b=4101&myvs_13c=河南省郑州市高新区郑州大学主校区松园&myvs_14=否&did=2&day6=b&men6=a&ptopid=${ptopid}&sid={$sid}" ${url}
+sid="${udata#*&sid=}" #登录获取ptopid和sid
+curl -d "day6=b&did=1&men6=a" -d "ptopid=$ptopid&sid=$sid" -s $url2 #进入确认界面
+curl -d "@myvs.txt" -d "jingdu=113.53&weidu=38.82&ptopid=$ptopid&sid=$sid" $url2 #打卡
+done
